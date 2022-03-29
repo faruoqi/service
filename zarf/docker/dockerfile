@@ -1,0 +1,27 @@
+FROM golang:1.17 as build_service-api
+ENV CGO_ENABLED 0
+ARG BUILD_REF
+
+#copy source code into the container
+COPY . /service
+
+#build the service binary
+WORKDIR /service
+RUN go build -ldflags "-X main.build=${BUILD_REF}"
+
+
+#run go binary in alpine image
+FROM alpine:3.4
+ARG BUILD_DATE
+ARG BUILD_REF
+COPY --from=build_service-api /service/service /service/service
+WORKDIR /service
+RUN chmod +x ./service
+CMD ["./service"]
+
+LABEL org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.title="service-test" \
+      org.opencontainers.image.authors="faruoqi <rezafaruoqi@gmail.com>" \
+      org.opencontainers.image.source="https://github.com/faruoqi/service.git" \
+      org.opencontainers.image.revision="${BUILD_REF}" \
+      org.opencontainers.image.vendor="faruoqi-tech"
